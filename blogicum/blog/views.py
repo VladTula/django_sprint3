@@ -1,27 +1,26 @@
-from django.shortcuts import render
-from .models import Category
-from django.shortcuts import get_object_or_404
-from .utils import post_filter
+from django.shortcuts import render, get_object_or_404
+from .models import Category, Post
+from django.utils import timezone
 
+
+def get_filter():
+    return Post.objects.filter(pub_date__lt=timezone.now(),
+                               is_published=True, category__is_published=True
+                               ).select_related('category')
 
 def index(request):
-    template_name = 'blog/index.html'
-    context = {'post_list': post_filter()[0:5]}
-    return render(request, template_name, context)
-
+    context = {'post_list': get_filter()[0:5]}
+    return render(request, 'blog/index.html', context)
 
 def category_posts(request, category_slug):
-    template_name = 'blog/category.html'
     category = get_object_or_404(Category.objects.filter(is_published=True),
                                  slug=category_slug)
-    post_list = post_filter().filter(category__title=category.title)
+    post_list = get_filter().filter(category__title=category.title)
     context = {'category': category, 'post_list': post_list}
+    return render(request, 'blog/category.html', context)
 
-    return render(request, template_name, context)
 
-
-def post_detail(request, id):
-    template_name = 'blog/detail.html'
-    post = get_object_or_404(post_filter(), pk=id)
+def post_detail(request, post_id):
+    post = get_object_or_404(get_filter(), pk=post_id)
     context = {'post': post}
-    return render(request, template_name, context)
+    return render(request, 'blog/detail.html', context)
